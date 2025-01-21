@@ -57,7 +57,6 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
     // clang-format off
     base_frame_ = declare_parameter<std::string>("base_frame", base_frame_);
     odom_frame_ = declare_parameter<std::string>("odom_frame", odom_frame_);
-    publish_odom_tf_ = declare_parameter<bool>("publish_odom_tf", publish_odom_tf_);
     publish_debug_clouds_ = declare_parameter<bool>("visualize", publish_debug_clouds_);
     config_.max_range = declare_parameter<double>("max_range", config_.max_range);
     config_.min_range = declare_parameter<double>("min_range", config_.min_range);
@@ -164,15 +163,6 @@ void OdometryServer::RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSha
 void OdometryServer::PublishOdometry(const Sophus::SE3d &pose,
                                      const rclcpp::Time &stamp,
                                      const std::string &cloud_frame_id) {
-    // Broadcast the tf ---
-    if (publish_odom_tf_) {
-        geometry_msgs::msg::TransformStamped transform_msg;
-        transform_msg.header.stamp = stamp;
-        transform_msg.header.frame_id = odom_frame_;
-        transform_msg.child_frame_id = base_frame_.empty() ? cloud_frame_id : base_frame_;
-        transform_msg.transform = tf2::sophusToTransform(pose);
-        tf_broadcaster_->sendTransform(transform_msg);
-    }
 
     // publish trajectory msg
     geometry_msgs::msg::PoseStamped pose_msg;
@@ -201,30 +191,15 @@ void OdometryServer::PublishClouds(const rclcpp::Time &stamp,
     // Publish map
     const auto genz_map = odometry_.LocalMap();
 
-    if (!publish_odom_tf_) {
-        // debugging happens in an egocentric world
-        std_msgs::msg::Header cloud_header;
-        cloud_header.stamp = stamp;
-        cloud_header.frame_id = cloud_frame_id;
+    // debugging happens in an egocentric world
+    std_msgs::msg::Header cloud_header;
+    cloud_header.stamp = stamp;
+    cloud_header.frame_id = cloud_frame_id;
 
-        map_publisher_->publish(std::move(EigenToPointCloud2(genz_map, odom_header)));
-        planar_points_publisher_->publish(std::move(EigenToPointCloud2(planar_points, cloud_header)));
-        non_planar_points_publisher_->publish(std::move(EigenToPointCloud2(non_planar_points, cloud_header)));
+    map_publisher_->publish(std::move(EigenToPointCloud2(genz_map, odom_header)));
+    planar_points_publisher_->publish(std::move(EigenToPointCloud2(planar_points, cloud_header)));
+    non_planar_points_publisher_->publish(std::move(EigenToPointCloud2(non_planar_points, cloud_header)));
 
-        return;
-    }
-
-    // If transmitting to tf tree we know where the clouds are exactly
-    const auto cloud2odom = LookupTransform(odom_frame_, cloud_frame_id);
-    planar_points_publisher_->publish(std::move(EigenToPointCloud2(planar_points, odom_header)));
-    non_planar_points_publisher_->publish(std::move(EigenToPointCloud2(non_planar_points, odom_header)));
-
-    if (!base_frame_.empty()) {
-        const Sophus::SE3d cloud2base = LookupTransform(base_frame_, cloud_frame_id);
-        map_publisher_->publish(std::move(EigenToPointCloud2(genz_map, cloud2base, odom_header)));
-    } else {
-        map_publisher_->publish(std::move(EigenToPointCloud2(genz_map, odom_header)));
-    }
 }
 }  // namespace genz_icp_ros
 
