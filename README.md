@@ -26,69 +26,13 @@
 
 [arXivlink]: https://arxiv.org/abs/2411.06766
 
+## flow chart
+![Flow Chart](Genz_icp_structure.png)
+
 ## :gear: How to build & run
 
-### ROS1
-
-#### How to build
-
-You should not need any extra dependency, just clone and build:
-    
-```sh
-mkdir -p ~/catkin_ws/src
-cd ~/catkin_ws/src
-git clone https://github.com/cocel-postech/genz-icp.git
-cd ..
-catkin build genz_icp --cmake-args -DCMAKE_BUILD_TYPE=Release
-source ~/catkin_ws/devel/setup.bash
-```
-
-#### How to run
-
-#### Option 1
-
-If you want to use a pre-tuned parameter set, you need to provide the **config file** with the **topic name** as arguments:
-
-```sh
-roslaunch genz_icp odometry.launch topic:=<topic_name> config_file:=<config_file_name>.yaml
-```
-```sh
-rosbag play <rosbag_file_name>.bag
-```
-
-For example,
-
-```sh
-roslaunch genz_icp odometry.launch topic:=/velodyne_points config_file:=long_corridor.yaml
-```
-```sh
-rosbag play subt_mrs_long_corridor.bag
-```
-
-The original bagfile for the **Long_Corridor** sequence of SubT-MRS dataset can be downloaded from [here][long_corridor_original_link]
-
-`subt_mrs_long_corridor.bag` includes only the `/velodyne_points` topic and can be downloaded from [here][long_corridor_link]
-
-[long_corridor_original_link]: https://superodometry.com/iccv23_challenge_Mul
-[long_corridor_link]: https://cocel.synology.me:5001/sharing/JZQalfEqQ
 
 
-#### Option 2
-
-Otherwise, the only required argument to provide is the **topic name**:
-
-```sh
-roslaunch genz_icp odometry.launch topic:=<topic_name>
-```
-```sh
-rosbag play <rosbag_file_name>.bag
-```
-
-Check out the tuning guide for the parameters of GenZ-ICP at this [link][tuning_guide_link]
-
-[tuning_guide_link]: https://github.com/cocel-postech/genz-icp/blob/master/ros/config/parameter_tuning_guide.md
-
-### ROS2
 
 #### How to build
 

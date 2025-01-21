@@ -214,7 +214,7 @@ std::tuple<Sophus::SE3d, std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector
             break;
         }
     }
-
+    //We should warn that if the norm is not converged here added by Wataru Oshima 20250121
     // // Spit the final transformation
     return std::make_tuple(T_icp * initial_guess, final_planar_points, final_non_planar_points);
 }

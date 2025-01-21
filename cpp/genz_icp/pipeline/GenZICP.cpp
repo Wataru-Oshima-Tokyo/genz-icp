@@ -35,7 +35,7 @@
 namespace genz_icp::pipeline {
 
 GenZICP::Vector3dVectorTuple GenZICP::RegisterFrame(const std::vector<Eigen::Vector3d> &frame,
-                                                    const std::vector<double> &timestamps) {
+                                                    const std::vector<double> &timestamps) { //(1)
     const auto &deskew_frame = [&]() -> std::vector<Eigen::Vector3d> {
         if (!config_.deskew || timestamps.empty()) return frame;
         // TODO(Nacho) Add some asserts here to sanitize the timestamps
@@ -54,7 +54,7 @@ GenZICP::Vector3dVectorTuple GenZICP::RegisterFrame(const std::vector<Eigen::Vec
     return RegisterFrame(deskew_frame);
 }
 
-GenZICP::Vector3dVectorTuple GenZICP::RegisterFrame(const std::vector<Eigen::Vector3d> &frame) {
+GenZICP::Vector3dVectorTuple GenZICP::RegisterFrame(const std::vector<Eigen::Vector3d> &frame) { //(2)
     // Preprocess the input cloud
     const auto &cropped_frame = Preprocess(frame, config_.max_range, config_.min_range);
 
@@ -80,7 +80,7 @@ GenZICP::Vector3dVectorTuple GenZICP::RegisterFrame(const std::vector<Eigen::Vec
     const auto initial_guess = last_pose * prediction;
 
     // Run GenZ-ICP
-    const auto &[new_pose, planar_points, non_planar_points] = registration_.RegisterFrame(source,         //
+    const auto &[new_pose, planar_points, non_planar_points] = registration_.RegisterFrame(source,         //(3)
                                                           local_map_,     //
                                                           initial_guess,  //
                                                           3.0 * sigma,    //
