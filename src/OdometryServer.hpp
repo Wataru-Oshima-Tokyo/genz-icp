@@ -34,6 +34,7 @@
 #include <nav_msgs/msg/path.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 #include <string>
 
 namespace genz_icp_ros {
@@ -48,6 +49,9 @@ private:
     /// Register new frame
     void RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg);
 
+    void ProcessImuData(const sensor_msgs::msg::Imu::SharedPtr msg);
+
+    void GetSyncedImuData(const rclcpp::Time &scan_time);
     /// Stream the estimated pose to ROS
     void PublishOdometry(const Sophus::SE3d &pose,
                          const rclcpp::Time &stamp,
@@ -70,9 +74,11 @@ private:
     std::unique_ptr<tf2_ros::TransformListener> tf2_listener_;
     bool publish_odom_tf_;
     bool publish_debug_clouds_;
-
+    rclcpp::CallbackGroup::CallbackGroup::SharedPtr callback_group_sub1_;
+    rclcpp::CallbackGroup::CallbackGroup::SharedPtr callback_group_sub2_;
     /// Data subscribers.
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
 
     /// Data publishers.
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_publisher_;
@@ -87,7 +93,9 @@ private:
     /// GenZ-ICP
     genz_icp::pipeline::GenZICP odometry_;
     genz_icp::pipeline::GenZConfig config_;
-
+    std::mutex imu_mutex_;
+    std::vector<sensor_msgs::msg::Imu> imu_data_;
+    std::vector<sensor_msgs::msg::Imu> synced_imu_data;
     /// Global/map coordinate frame.
     std::string odom_frame_{"odom"};
     std::string base_frame_{};

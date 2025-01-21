@@ -80,12 +80,20 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
 
     // Construct the main GenZ-ICP odometry node
     odometry_ = genz_icp::pipeline::GenZICP(config_);
-
+    callback_group_sub1_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    callback_group_sub2_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    // Subscription options for subscriptions
+    auto sub1_opt = rclcpp::SubscriptionOptions();
+    sub1_opt.callback_group = callback_group_sub1_;
+    auto sub2_opt = rclcpp::SubscriptionOptions();
+    sub2_opt.callback_group = callback_group_sub2_;
     // Initialize subscribers
     pointcloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
         "pointcloud_topic", rclcpp::SensorDataQoS(),
-        std::bind(&OdometryServer::RegisterFrame, this, std::placeholders::_1));
-
+        std::bind(&OdometryServer::RegisterFrame, this, std::placeholders::_1), sub1_opt);
+    imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
+        "imu_topic", rclcpp::SensorDataQoS(),
+        std::bind(&OdometryServer::ProcessImuData, this, std::placeholders::_1), sub2_opt);
     // Initialize publishers
     rclcpp::QoS qos((rclcpp::SystemDefaultsQoS().keep_last(1).durability_volatile()));
     odom_publisher_ = create_publisher<nav_msgs::msg::Odometry>("/genz/odometry", qos);
@@ -123,7 +131,29 @@ Sophus::SE3d OdometryServer::LookupTransform(const std::string &target_frame,
     return {};
 }
 
+
+void OdometryServer::ProcessImuData(const sensor_msgs::msg::Imu::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock(imu_mutex_);
+    
+    imu_data_.emplace_back(*msg);
+}
+
+
+void OdometryServer::GetSyncedImuData(const rclcpp::Time &scan_time) {
+    std::lock_guard<std::mutex> lock(imu_mutex_);
+    // Filter IMU messages around the scan time
+    // for (const auto &imu : imu_data_) {
+    //     if (imu.header.stamp >= scan_time - rclcpp::Duration(0.05) &&
+    //         imu.header.stamp <= scan_time + rclcpp::Duration(0.05)) {
+    //         synced_imu_data.push_back(imu);
+    //     }
+    // }
+
+}
+
 void OdometryServer::RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg) {
+    const auto scan_time = msg->header.stamp;
+    // const auto imu_data = GetSyncedImuData(scan_time);
     const auto cloud_frame_id = msg->header.frame_id;
     const auto points = PointCloud2ToEigen(msg);
     const auto timestamps = [&]() -> std::vector<double> {
