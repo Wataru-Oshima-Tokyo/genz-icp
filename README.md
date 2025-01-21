@@ -26,7 +26,7 @@
 
 [arXivlink]: https://arxiv.org/abs/2411.06766
 
-## flow chart
+## Flow chart
 ![Flow Chart](Genz_icp_structure.png)
 
 ## :gear: How to build & run
