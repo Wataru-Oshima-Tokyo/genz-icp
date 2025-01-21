@@ -106,22 +106,6 @@ OdometryServer::OdometryServer(const rclcpp::NodeOptions &options)
     RCLCPP_INFO(this->get_logger(), "GenZ-ICP ROS 2 odometry node initialized");
 }
 
-Sophus::SE3d OdometryServer::LookupTransform(const std::string &target_frame,
-                                             const std::string &source_frame) const {
-    std::string err_msg;
-    if (tf2_buffer_->_frameExists(source_frame) &&  //
-        tf2_buffer_->_frameExists(target_frame) &&  //
-        tf2_buffer_->canTransform(target_frame, source_frame, tf2::TimePointZero, &err_msg)) {
-        try {
-            auto tf = tf2_buffer_->lookupTransform(target_frame, source_frame, tf2::TimePointZero);
-            return tf2::transformToSophus(tf);
-        } catch (tf2::TransformException &ex) {
-            RCLCPP_WARN(this->get_logger(), "%s", ex.what());
-        }
-    }
-    RCLCPP_WARN(this->get_logger(), "Failed to find tf. Reason=%s", err_msg.c_str());
-    return {};
-}
 
 void OdometryServer::RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg) {
     const auto cloud_frame_id = msg->header.frame_id;
@@ -138,15 +122,9 @@ void OdometryServer::RegisterFrame(const sensor_msgs::msg::PointCloud2::ConstSha
     // Compute the pose using GenZ, ego-centric to the LiDAR
     const Sophus::SE3d genz_pose = odometry_.poses().back();
 
-    // If necessary, transform the ego-centric pose to the specified base_link/base_footprint frame
-    const auto pose = [&]() -> Sophus::SE3d {
-        if (egocentric_estimation) return genz_pose;
-        const Sophus::SE3d cloud2base = LookupTransform(base_frame_, cloud_frame_id);
-        return cloud2base * genz_pose * cloud2base.inverse();
-    }();
 
     // Spit the current estimated pose to ROS msgs
-    PublishOdometry(pose, msg->header.stamp, cloud_frame_id);
+    PublishOdometry(genz_pose, msg->header.stamp, cloud_frame_id);
     // Publishing this clouds is a bit costly, so do it only if we are debugging
     if (publish_debug_clouds_) {
         PublishClouds(msg->header.stamp, cloud_frame_id, planar_points, non_planar_points);
