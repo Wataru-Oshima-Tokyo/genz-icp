@@ -39,24 +39,23 @@ def generate_launch_description():
         [
             # ROS 2 parameters
             DeclareLaunchArgument("topic", description="sensor_msg/PointCloud2 topic to process"),
-            DeclareLaunchArgument("bagfile", default_value=""),
             DeclareLaunchArgument("visualize", default_value="true"),
             DeclareLaunchArgument("odom_frame", default_value="odom"),
             DeclareLaunchArgument("base_frame", default_value=""),
             DeclareLaunchArgument("publish_odom_tf", default_value="true"),
             # GenZ-ICP parameters
             DeclareLaunchArgument("deskew", default_value="false"),
-            DeclareLaunchArgument("max_range", default_value="100.0"),
+            DeclareLaunchArgument("max_range", default_value="150.0"),
             DeclareLaunchArgument("min_range", default_value="0.3"),
             # This thing is still not suported: https://github.com/ros2/launch/issues/290#issuecomment-1438476902
             #  DeclareLaunchArgument("voxel_size", default_value=None),
             DeclareLaunchArgument("voxel_size", default_value="0.3"),
-            DeclareLaunchArgument("map_cleanup_radius", default_value="100.0"),
-            DeclareLaunchArgument("max_points_per_voxelized_scan", default_value="1500"),
-            DeclareLaunchArgument("min_points_per_voxelized_scan", default_value="1300"),
-            DeclareLaunchArgument("planarity_threshold", default_value="0.12"),
+            DeclareLaunchArgument("map_cleanup_radius", default_value="300.0"),
+            DeclareLaunchArgument("max_points_per_voxelized_scan", default_value="1800"),
+            DeclareLaunchArgument("min_points_per_voxelized_scan", default_value="1500"),
+            DeclareLaunchArgument("planarity_threshold", default_value="0.17"),
             DeclareLaunchArgument("max_points_per_voxel", default_value="1"),
-            DeclareLaunchArgument("max_num_iterations", default_value="50"),
+            DeclareLaunchArgument("max_num_iterations", default_value="100"),
             DeclareLaunchArgument("convergence_criterion", default_value="0.0001"),
             DeclareLaunchArgument("initial_threshold", default_value="2.0"),
             DeclareLaunchArgument("min_motion_th", default_value="0.1"),
@@ -94,13 +93,6 @@ def generate_launch_description():
                 output={"both": "log"},
                 arguments=["-d", PathJoinSubstitution([current_pkg, "rviz", "genz_icp_ros2.rviz"])],
                 condition=IfCondition(LaunchConfiguration("visualize")),
-            ),
-            ExecuteProcess(
-                cmd=["ros2", "bag", "play", LaunchConfiguration("bagfile")],
-                output="screen",
-                condition=IfCondition(
-                    PythonExpression(["'", LaunchConfiguration("bagfile"), "' != ''"])
-                ),
             ),
         ]
     )
